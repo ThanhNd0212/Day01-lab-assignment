@@ -230,6 +230,25 @@ def retry_with_backoff(
         The last exception raised by fn() after all retries are exhausted.
     """
     # TODO: implement retry loop with exponential backoff
+    last_exception = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            return fn()
+
+        except Exception as e:
+            last_exception = e
+
+            # Nếu đã retry hết số lần cho phép
+            if attempt == max_retries:
+                raise last_exception
+
+            # exponential backoff
+            delay = base_delay * (2 ** attempt)
+
+            time.sleep(delay)
+
+    raise last_exception
     #raise NotImplementedError("Implement retry_with_backoff")
 
 
@@ -248,6 +267,17 @@ def batch_compare(prompts: list[str]) -> list[dict]:
         key "prompt" containing the original prompt string.
     """
     # TODO: iterate over prompts, call compare_models, add "prompt" key
+    results = []
+
+    for prompt in prompts:
+
+        result = compare_models(prompt)
+
+        result["prompt"] = prompt
+
+        results.append(result)
+
+    return results
     #raise NotImplementedError("Implement batch_compare")
 
 
@@ -270,6 +300,20 @@ def format_comparison_table(results: list[dict]) -> str:
     """
     # TODO: build and return a formatted table string
    # raise NotImplementedError("Implement format_comparison_table")
+
+    table = "Prompt | GPT-4o Response | Mini Response | GPT-4o Latency | Mini Latency\n"
+    table += "-" * 80 + "\n"
+
+    for result in results:
+        prompt = result["prompt"][:40] + "..." if len(result["prompt"]) > 40 else result["prompt"]
+        gpt4o_response = result["gpt4o_response"][:40] + "..." if len(result["gpt4o_response"]) > 40 else result["gpt4o_response"]
+        mini_response = result["mini_response"][:40] + "..." if len(result["mini_response"]) > 40 else result["mini_response"]
+        gpt4o_latency = result["gpt4o_latency"]
+        mini_latency = result["mini_latency"]
+
+        table += f"{prompt} | {gpt4o_response} | {mini_response} | {gpt4o_latency} | {mini_latency}\n"
+
+    return table
 
 
 # ---------------------------------------------------------------------------
