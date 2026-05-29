@@ -180,32 +180,43 @@ def streaming_chatbot() -> None:
         })
         messages = history[-6:]
 
-        stream = client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=messages,
-            stream=True,
-        )
+        try:
 
-        print("Assistant: ", end="", flush=True)
+            stream = client.chat.completions.create(
+                model=OPENAI_MINI_MODEL,
+                messages=messages,
+                stream=True,
+                max_tokens=256,
+                temperature=0.7,
+                top_p=0.9,
+            )
 
-        assistant_reply = ""
+            print("Assistant: ", end="", flush=True)
 
-        for chunk in stream:
-            delta = chunk.choices[0].delta.content or ""
-            assistant_reply += delta
-            print(delta, end="", flush=True)
+            assistant_reply = ""
 
-        print()
+            for chunk in stream:
 
-        history.append({
-            "role": "assistant",
-            "content": assistant_reply
-        })
+                delta = chunk.choices[0].delta.content or ""
 
-        # Keep only last 3 conversation turns (6 messages)
-        history = history[-6:]
+                assistant_reply += delta
 
+                print(delta, end="", flush=True)
 
+            print()
+
+            # Save assistant response
+            history.append({
+                "role": "assistant",
+                "content": assistant_reply
+            })
+
+            # Keep only last 3 turns (6 messages)
+            history = history[-6:]
+
+        except Exception as e:
+
+            print(f"\nError: {e}")
 # ---------------------------------------------------------------------------
 # Bonus Task A — Retry with exponential backoff
 # ---------------------------------------------------------------------------
@@ -321,9 +332,27 @@ def format_comparison_table(results: list[dict]) -> str:
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     test_prompt = "Explain the difference between temperature and top_p in one sentence."
-    print("=== Comparing models ===")
     result = compare_models(test_prompt)
     for key, value in result.items():
         print(f"{key}: {value}")
+    #call retry_with_backoff with a test function that fails a few times before succeeding
+    #call_count = [0]
+    #def test_fn():
+    #    call_count[0] += 1
+    #    if call_count[0] < 3:
+    #        raise RuntimeError("temporary failure")
+    #    return "ok"
+    #result = retry_with_backoff(test_fn, max_retries=5, base_delay=0.01)
+    #print(f"Final result: {result}")
+    #call batch_compare with a list of prompts and print the formatted table
+    #prompts = [
+    #    "What is the capital of France?",
+    #    "Summarize the plot of The Great Gatsby in one sentence.",
+    #    "Write a haiku about AI."
+    #]
+    #results = batch_compare(prompts)
+    #table = format_comparison_table(results)
+    #print("\n=== Comparison Table ===")
+    #print(table)
     print("\n=== Starting chatbot (type 'quit' to exit) ===")
     streaming_chatbot()
